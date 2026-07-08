@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<meta name="ext-resource-dependency" content="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.wasm">
+<style>
+html,body{margin:0;padding:0;height:100%;background:#0e1117;}
+*{box-sizing:border-box;}
+textarea{outline:none;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:#2a3140;border-radius:5px;border:2px solid #12151c;}
+::-webkit-scrollbar-track{background:transparent;}
+@keyframes qpulse{0%,100%{opacity:0.25;}50%{opacity:1;}}
+</style>
+</helmet>
+<div style="display:flex;height:100vh;width:100vw;overflow:hidden;background:#0e1117;color:#e2e6ee;font-family:'IBM Plex Sans',sans-serif;font-size:14px">
+
+  <!-- ============ SCHEMA SIDEBAR ============ -->
+  <div data-screen-label="Schema sidebar" style="width:236px;min-width:236px;display:flex;flex-direction:column;background:#12151c;border-right:1px solid #222836">
+    <div style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px 14px;border-bottom:1px solid #222836">
+      <div style="width:24px;height:24px;border-radius:6px;background:#2f6bff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#ffffff">Q</div>
+      <div style="font-weight:600;font-size:15px;letter-spacing:0.2px">Quarry</div>
+      <div style="margin-left:auto;font-size:10px;color:#6b7484;font-family:'IBM Plex Mono',monospace">v0.1</div>
+    </div>
+
+    <div style="padding:12px 14px;border-bottom:1px solid #222836;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;color:#6b7484">DATABASE</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:7px;height:7px;border-radius:50%;background:{{ dbDotColor }}"></div>
+        <div style="font-size:13px;color:#c6cdd9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ dbName }}</div>
+      </div>
+      <button onClick="{{ openDbClick }}" style="width:100%;background:#1b2029;border:1px solid #2a3140;color:#c6cdd9;border-radius:6px;padding:6px 0;font-size:12px;font-family:'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="background:#222836;border-color:#3a4356">Open .sqlite</button>
+      <input type="file" accept=".db,.sqlite,.sqlite3" ref="{{ fileInputRef }}" onChange="{{ onFileChosen }}" style="display:none">
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:10px 8px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;color:#6b7484;padding:2px 6px 8px 6px">TABLES</div>
+      <sc-for list="{{ tables }}" as="tbl" hint-placeholder-count="4">
+        <div style="margin-bottom:2px">
+          <div onClick="{{ tbl.onToggle }}" style="display:flex;align-items:center;gap:7px;padding:6px 6px;border-radius:6px;cursor:pointer" style-hover="background:#1b2029">
+            <div style="font-size:9px;color:#6b7484;width:10px;transform:{{ tbl.arrowRot }};transition:transform 0.15s">▶</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#d7dce6;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ tbl.name }}</div>
+            <div style="font-size:10.5px;color:#6b7484;font-family:'IBM Plex Mono',monospace">{{ tbl.rowCount }}</div>
+          </div>
+          <sc-if value="{{ tbl.expanded }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:2px 0 6px 23px;display:flex;flex-direction:column;gap:1px">
+              <sc-for list="{{ tbl.columns }}" as="col" hint-placeholder-count="3">
+                <div style="display:flex;align-items:baseline;gap:8px;padding:2px 6px">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#9aa3b5">{{ col.name }}</div>
+                  <div style="font-size:10px;color:#5a6374;font-family:'IBM Plex Mono',monospace">{{ col.type }}</div>
+                </div>
+              </sc-for>
+              <button onClick="{{ tbl.onView }}" style="margin:4px 6px 0 6px;background:transparent;border:1px solid #2a3140;color:#8ea4d6;border-radius:5px;padding:4px 0;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;color:#b9c8ea">Browse rows</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="padding:10px 14px;border-top:1px solid #222836;font-size:11px;color:#5a6374;line-height:1.5">Ask the analyst in plain language — it queries this database for you.</div>
+  </div>
+
+  <!-- ============ CHAT PANEL ============ -->
+  <div data-screen-label="Chat panel" style="flex:0 1 440px;min-width:280px;display:flex;flex-direction:column;background:#0e1117;border-right:1px solid #222836">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #222836">
+      <div style="font-weight:600;font-size:14px">Analyst</div>
+      <select value="{{ modelVal }}" onChange="{{ onModelChange }}" style="font-size:11px;color:#8ea4d6;background:#182238;border:1px solid #24304a;border-radius:20px;padding:3px 8px;font-family:'IBM Plex Mono',monospace;cursor:pointer;outline:none;appearance:none;width:{{ modelSelWidth }}">
+        <option value="claude-sonnet-4-5">sonnet · smart</option>
+        <option value="claude-haiku-4-5">haiku · fast</option>
+        <sc-for list="{{ customModelOpts }}" as="cm" hint-placeholder-count="0">
+          <option value="{{ cm.id }}">{{ cm.label }}</option>
+        </sc-for>
+        <option value="__add">＋ connect model…</option>
+      </select>
+      <button onClick="{{ openModal }}" title="Use your own API key (OpenAI, Anthropic, Groq, Ollama…)" style="display:flex;align-items:center;gap:5px;background:#1b2029;border:1px dashed #3a4356;color:#9aa3b5;border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap" style-hover="border-color:#2f6bff;color:#e2e6ee;background:#182238"><span style="color:#2f6bff;font-size:13px;line-height:1">＋</span>Connect model</button>
+      <div style="margin-left:auto;font-size:11px;color:#6b7484">{{ statusLabel }}</div>
+    </div>
+
+    <div ref="{{ msgsRef }}" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px">
+
+      <sc-if value="{{ showIntro }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+          <div style="font-size:15px;font-weight:600;color:#e2e6ee">What do you want to know about this data?</div>
+          <div style="font-size:12.5px;color:#8b93a3;line-height:1.55">I can query the database, show result tables on the right, and build charts you can export to PNG, Word or PowerPoint.</div>
+          <div style="display:flex;flex-direction:column;gap:7px;margin-top:4px">
+            <button onClick="{{ sugg1 }}" style="text-align:left;background:#141922;border:1px solid #232a38;color:#b8c0cf;border-radius:8px;padding:9px 12px;font-size:12.5px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;background:#161c28">Give me an overview of what's in this database</button>
+            <button onClick="{{ sugg2 }}" style="text-align:left;background:#141922;border:1px solid #232a38;color:#b8c0cf;border-radius:8px;padding:9px 12px;font-size:12.5px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;background:#161c28">Who are the top 10 customers by revenue?</button>
+            <button onClick="{{ sugg3 }}" style="text-align:left;background:#141922;border:1px solid #232a38;color:#b8c0cf;border-radius:8px;padding:9px 12px;font-size:12.5px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;background:#161c28">Chart monthly revenue as a line chart</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-for list="{{ messages }}" as="msg" hint-placeholder-count="0">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:{{ msg.align }}">
+          <div style="font-size:10px;font-weight:600;letter-spacing:1px;color:#5a6374">{{ msg.roleLabel }}</div>
+
+          <sc-for list="{{ msg.sqlBlocks }}" as="blk" hint-placeholder-count="0">
+            <div style="width:100%;background:#12151c;border:1px solid #232a38;border-radius:8px;overflow:hidden">
+              <div onClick="{{ blk.onToggle }}" style="display:flex;align-items:center;gap:8px;padding:7px 11px;cursor:pointer" style-hover="background:#161b25">
+                <div style="font-size:9px;color:#6b7484;transform:{{ blk.arrowRot }};transition:transform 0.15s">▶</div>
+                <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#8ea4d6;font-family:'IBM Plex Mono',monospace">SQL</div>
+                <div style="font-size:11px;color:#6b7484;font-family:'IBM Plex Mono',monospace;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ blk.preview }}</div>
+                <div style="font-size:10.5px;color:{{ blk.metaColor }};font-family:'IBM Plex Mono',monospace;white-space:nowrap">{{ blk.meta }}</div>
+              </div>
+              <sc-if value="{{ blk.open }}" hint-placeholder-val="{{ false }}">
+                <pre style="margin:0;padding:10px 12px;border-top:1px solid #232a38;font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.55;color:#c6cdd9;white-space:pre-wrap;word-break:break-word;background:#0e1117">{{ blk.query }}</pre>
+              </sc-if>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ msg.hasText }}" hint-placeholder-val="{{ true }}">
+            <div style="max-width:92%;padding:10px 13px;border-radius:10px;font-size:13.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;background:{{ msg.bg }};border:1px solid {{ msg.border }};color:{{ msg.color }}">{{ msg.text }}</div>
+          </sc-if>
+
+          <sc-if value="{{ msg.thinking }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:5px;padding:10px 4px">
+              <div style="width:6px;height:6px;border-radius:50%;background:#2f6bff;animation:qpulse 1.2s infinite"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:#2f6bff;animation:qpulse 1.2s 0.2s infinite"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:#2f6bff;animation:qpulse 1.2s 0.4s infinite"></div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="padding:12px 14px;border-top:1px solid #222836;display:flex;flex-direction:column;gap:8px">
+      <textarea value="{{ inputVal }}" onChange="{{ onInput }}" onKeyDown="{{ onKeyDown }}" placeholder="Ask about your data…" rows="2" style="width:100%;resize:none;background:#141922;border:1px solid #2a3140;border-radius:9px;padding:10px 12px;color:#e2e6ee;font-size:13.5px;font-family:'IBM Plex Sans',sans-serif;line-height:1.5" style-focus="border-color:#2f6bff"></textarea>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:11px;color:#5a6374">Enter to send · Shift+Enter for newline</div>
+        <button onClick="{{ onSend }}" disabled="{{ sendDisabled }}" style="margin-left:auto;background:#2f6bff;border:none;color:#ffffff;border-radius:7px;padding:7px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;opacity:{{ sendOpacity }}" style-hover="background:#4079ff">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RIGHT PANEL ============ -->
+  <div data-screen-label="Data and visualization panel" style="flex:1;display:flex;flex-direction:column;background:#0e1117;min-width:0">
+    <div style="display:flex;align-items:center;gap:4px;padding:8px 16px 0 16px;border-bottom:1px solid #222836;flex-wrap:wrap;min-width:0">
+      <button onClick="{{ tabData }}" style="background:transparent;border:none;border-bottom:2px solid {{ dataTabBorder }};color:{{ dataTabColor }};padding:8px 14px 10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif">Data</button>
+      <button onClick="{{ tabViz }}" style="background:transparent;border:none;border-bottom:2px solid {{ vizTabBorder }};color:{{ vizTabColor }};padding:8px 14px 10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif">Visualizations<span style="margin-left:7px;font-size:10.5px;background:#182238;border:1px solid #24304a;border-radius:10px;padding:1px 7px;color:#8ea4d6;font-family:'IBM Plex Mono',monospace">{{ chartCount }}</span></button>
+      <button onClick="{{ tabTrans }}" style="background:transparent;border:none;border-bottom:2px solid {{ transTabBorder }};color:{{ transTabColor }};padding:8px 14px 10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif">Transform<span style="margin-left:7px;font-size:10.5px;background:#182238;border:1px solid #24304a;border-radius:10px;padding:1px 7px;color:#8ea4d6;font-family:'IBM Plex Mono',monospace">{{ transCount }}</span></button>
+      <sc-if value="{{ hasCharts }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ exportDeck }}" style="margin-left:auto;background:#1b2029;border:1px solid #2a3140;color:#c6cdd9;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;margin-bottom:6px" style-hover="border-color:#2f6bff;color:#e2e6ee">Export all → PPTX</button>
+      </sc-if>
+    </div>
+
+    <!-- DATA TAB -->
+    <sc-if value="{{ showDataTab }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <sc-if value="{{ hasTableView }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:baseline;gap:10px;padding:14px 18px 10px 18px">
+            <div style="font-size:14.5px;font-weight:600">{{ tableTitle }}</div>
+            <div style="font-size:11.5px;color:#6b7484;font-family:'IBM Plex Mono',monospace">{{ tableMeta }}</div>
+          </div>
+          <div style="flex:1;overflow:auto;min-height:0;padding:0 18px 18px 18px">
+            <table style="border-collapse:collapse;width:100%;font-size:12.5px">
+              <thead>
+                <tr>
+                  <sc-for list="{{ tableCols }}" as="tc" hint-placeholder-count="4">
+                    <th style="position:sticky;top:0;background:#161b25;color:#8ea4d6;text-align:left;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;border-bottom:1px solid #2a3140;white-space:nowrap;z-index:1">{{ tc }}</th>
+                  </sc-for>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ tableRows }}" as="row" hint-placeholder-count="8">
+                  <tr style="border-bottom:1px solid #1b202b">
+                    <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="4">
+                      <td style="padding:7px 12px;color:#c6cdd9;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis">{{ cell }}</td>
+                    </sc-for>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noTableView }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#5a6374">
+            <div style="font-size:34px;opacity:0.5">▦</div>
+            <div style="font-size:13px">No data displayed yet</div>
+            <div style="font-size:12px;color:#4a5262">Browse a table from the sidebar, or ask the analyst a question.</div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- VIZ TAB -->
+    <sc-if value="{{ showVizTab }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;min-height:0;padding:16px 18px">
+        <sc-if value="{{ hasCharts }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(400px,100%),1fr));gap:14px">
+            <sc-for list="{{ charts }}" as="ch" hint-placeholder-count="0">
+              <div style="background:#12151c;border:1px solid #232a38;border-radius:10px;display:flex;flex-direction:column;overflow:hidden">
+                <div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #1e2431">
+                  <div style="font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ch.title }}</div>
+                  <button onClick="{{ ch.exportPng }}" title="Export as PNG image" style="background:#1b2029;border:1px solid #2a3140;color:#9aa3b5;border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;color:#e2e6ee">PNG</button>
+                  <button onClick="{{ ch.exportDoc }}" title="Export as Word document" style="background:#1b2029;border:1px solid #2a3140;color:#9aa3b5;border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;color:#e2e6ee">DOC</button>
+                  <button onClick="{{ ch.exportPpt }}" title="Export as PowerPoint" style="background:#1b2029;border:1px solid #2a3140;color:#9aa3b5;border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;color:#e2e6ee">PPT</button>
+                  <button onClick="{{ ch.remove }}" title="Remove chart" style="background:transparent;border:none;color:#5a6374;font-size:14px;cursor:pointer;padding:2px 4px" style-hover="color:#e5636f">✕</button>
+                </div>
+                <div style="height:300px;padding:12px 14px 14px 14px;position:relative">
+                  <canvas ref="{{ ch.refCb }}"></canvas>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noCharts }}" hint-placeholder-val="{{ true }}">
+          <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#5a6374">
+            <div style="font-size:34px;opacity:0.5">◔</div>
+            <div style="font-size:13px">No visualizations yet</div>
+            <div style="font-size:12px;color:#4a5262">Ask the analyst to chart something — e.g. “chart revenue by month”.</div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- TRANSFORM TAB -->
+    <sc-if value="{{ showTransTab }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;min-height:0;padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+        <sc-if value="{{ hasTransforms }}" hint-placeholder-val="{{ false }}">
+          <sc-for list="{{ transforms }}" as="tr" hint-placeholder-count="0">
+            <div style="background:#12151c;border:1px solid #232a38;border-radius:10px;overflow:hidden">
+              <div style="padding:12px 16px;border-bottom:1px solid #1e2431;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="font-size:13.5px;font-weight:600;flex:1">{{ tr.title }}</div>
+                  <div style="font-size:10.5px;color:#8ea4d6;background:#182238;border:1px solid #24304a;border-radius:20px;padding:2px 9px;font-family:'IBM Plex Mono',monospace">{{ tr.op }}</div>
+                </div>
+                <div style="font-size:12px;color:#8b93a3;line-height:1.5">{{ tr.desc }}</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;align-items:stretch;gap:0">
+                <div style="flex:1 1 300px;min-width:260px;display:flex;flex-direction:column;min-height:0">
+                  <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;color:#6b7484;padding:10px 14px 6px 14px">SOURCE · {{ tr.sourceMeta }}</div>
+                  <div style="overflow:auto;max-height:260px;padding:0 14px 12px 14px">
+                    <table style="border-collapse:collapse;width:100%;font-size:11.5px">
+                      <thead><tr>
+                        <sc-for list="{{ tr.sourceCols }}" as="sc" hint-placeholder-count="3">
+                          <th style="position:sticky;top:0;background:{{ sc.hbg }};color:{{ sc.hcolor }};text-align:left;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;border-bottom:1px solid #2a3140;white-space:nowrap;z-index:1">{{ sc.name }}</th>
+                        </sc-for>
+                      </tr></thead>
+                      <tbody>
+                        <sc-for list="{{ tr.sourceRows }}" as="row" hint-placeholder-count="4">
+                          <tr style="border-bottom:1px solid #1b202b">
+                            <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="3">
+                              <td style="padding:5px 10px;color:#c6cdd9;font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;background:{{ cell.bg }}">{{ cell.v }}</td>
+                            </sc-for>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;padding:0 4px;color:#2f6bff;font-size:18px;align-self:center">→</div>
+                <div style="flex:1 1 300px;min-width:260px;display:flex;flex-direction:column;min-height:0;border-left:1px solid #1e2431;background:#10141c">
+                  <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;color:#22c3a6;padding:10px 14px 6px 14px">RESULT · {{ tr.resultMeta }}</div>
+                  <div style="overflow:auto;max-height:260px;padding:0 14px 12px 14px">
+                    <table style="border-collapse:collapse;width:100%;font-size:11.5px">
+                      <thead><tr>
+                        <sc-for list="{{ tr.resultCols }}" as="rc" hint-placeholder-count="2">
+                          <th style="position:sticky;top:0;background:#10141c;color:#22c3a6;text-align:left;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;border-bottom:1px solid #2a3140;white-space:nowrap;z-index:1">{{ rc }}</th>
+                        </sc-for>
+                      </tr></thead>
+                      <tbody>
+                        <sc-for list="{{ tr.resultRows }}" as="row" hint-placeholder-count="3">
+                          <tr style="border-bottom:1px solid #1b202b">
+                            <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="2">
+                              <td style="padding:5px 10px;color:#dbe6e2;font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis">{{ cell }}</td>
+                            </sc-for>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{ noTransforms }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#5a6374">
+            <div style="font-size:34px;opacity:0.5">⇉</div>
+            <div style="font-size:13px">No transformations logged yet</div>
+            <div style="font-size:12px;color:#4a5262;max-width:420px;text-align:center;line-height:1.5">When the analyst aggregates data (sums, counts, group-bys), the source rows and the computed result appear here side by side so you can audit its work.</div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- CONNECT MODEL MODAL -->
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(5,8,14,0.7);display:flex;align-items:center;justify-content:center;z-index:100" data-screen-label="Connect model modal">
+      <div style="width:420px;max-width:92vw;background:#141922;border:1px solid #2a3140;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;max-height:88vh;overflow-y:auto">
+        <div style="font-size:15px;font-weight:600">Connect an external model</div>
+        <div style="font-size:11.5px;color:#8b93a3;line-height:1.5">Your API key is stored only in this browser and sent directly to the provider — it never touches a server of ours.</div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">PROVIDER</div>
+          <select value="{{ mProvider }}" onChange="{{ onMProvider }}" style="background:#0e1117;border:1px solid #2a3140;border-radius:7px;padding:8px 10px;color:#e2e6ee;font-size:13px;font-family:'IBM Plex Sans',sans-serif;outline:none">
+            <option value="openai">OpenAI / OpenAI-compatible (Groq, Mistral, OpenRouter, Ollama…)</option>
+            <option value="anthropic">Anthropic (direct)</option>
+          </select>
+        </div>
+
+        <sc-if value="{{ mShowBaseUrl }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">BASE URL</div>
+            <input value="{{ mBaseUrl }}" onChange="{{ onMBaseUrl }}" placeholder="https://api.openai.com/v1" style="background:#0e1117;border:1px solid #2a3140;border-radius:7px;padding:8px 10px;color:#e2e6ee;font-size:12.5px;font-family:'IBM Plex Mono',monospace;outline:none">
+          </div>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">MODEL ID</div>
+          <input value="{{ mModel }}" onChange="{{ onMModel }}" placeholder="{{ mModelPlaceholder }}" style="background:#0e1117;border:1px solid #2a3140;border-radius:7px;padding:8px 10px;color:#e2e6ee;font-size:12.5px;font-family:'IBM Plex Mono',monospace;outline:none">
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">API KEY</div>
+          <input type="password" value="{{ mApiKey }}" onChange="{{ onMApiKey }}" placeholder="sk-…" style="background:#0e1117;border:1px solid #2a3140;border-radius:7px;padding:8px 10px;color:#e2e6ee;font-size:12.5px;font-family:'IBM Plex Mono',monospace;outline:none">
+        </div>
+
+        <sc-if value="{{ mError }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12px;color:#e5636f">{{ mError }}</div>
+        </sc-if>
+
+        <div style="display:flex;gap:8px;margin-top:2px">
+          <button onClick="{{ mSave }}" style="flex:1;background:#2f6bff;border:none;color:#ffffff;border-radius:7px;padding:9px 0;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="background:#4079ff">Connect</button>
+          <button onClick="{{ mCancel }}" style="flex:1;background:#1b2029;border:1px solid #2a3140;color:#c6cdd9;border-radius:7px;padding:9px 0;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="background:#222836">Cancel</button>
+        </div>
+
+        <sc-if value="{{ hasCustomModels }}" hint-placeholder-val="{{ false }}">
+          <div style="border-top:1px solid #222836;padding-top:10px;display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">CONNECTED</div>
+            <sc-for list="{{ customModelOpts }}" as="cm" hint-placeholder-count="0">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="font-size:12px;color:#c6cdd9;font-family:'IBM Plex Mono',monospace;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ cm.label }}</div>
+                <button onClick="{{ cm.onRemove }}" style="background:transparent;border:none;color:#5a6374;font-size:13px;cursor:pointer;padding:2px 4px" style-hover="color:#e5636f">✕</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;model&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;claude-sonnet-4-5&quot;,&quot;claude-haiku-4-5&quot;],&quot;default&quot;:&quot;claude-sonnet-4-5&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;AI&quot;},&quot;sqlExpandedByDefault&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Chat&quot;}}">
+class Component extends DCLogic {
+  state = {
+    ready: false,
+    dbName: 'Loading…',
+    tables: [],
+    expanded: {},
+    messages: [], // {role, text, sqlBlocks:[{query, meta, error}], thinking}
+    sqlOpen: {},
+    pending: false,
+    input: '',
+    tab: 'data',
+    tableView: null, // {title, columns, rows, meta}
+    charts: [], // {id, title, config}
+    model: null, // null -> use prop default
+    customModels: [], // {id, label, provider, baseUrl, model, apiKey}
+    modalOpen: false,
+    mProvider: 'openai', mBaseUrl: 'https://api.openai.com/v1', mModel: '', mApiKey: '', mError: null,
+    transforms: [], // {id, title, desc, op, highlightCols, source:{columns,rows,total}, result:{columns,rows,total}}
+  };
+
+  chartRegistry = {};
+  nextChartId = 1;
+
+  componentDidMount() {
+    this.fileInputRef = null;
+    this.msgsEl = null;
+    try {
+      const saved = JSON.parse(localStorage.getItem('quarry_custom_models') || '[]');
+      if (Array.isArray(saved)) this.setState({ customModels: saved });
+    } catch (e) {}
+    const wait = () => {
+      if (window.initSqlJs && window.Chart && window.PptxGenJS) this.initDb();
+      else setTimeout(wait, 120);
+    };
+    wait();
+  }
+
+  componentDidUpdate() {
+    if (this.msgsEl) this.msgsEl.scrollTop = this.msgsEl.scrollHeight;
+  }
+
+  async initDb() {
+    try {
+      this.SQL = await window.initSqlJs({
+        locateFile: f => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/' + f
+      });
+      this.loadSample();
+    } catch (e) {
+      this.setState({ dbName: 'Engine failed to load' });
+    }
+  }
+
+  async loadSample() {
+    try {
+      const r = await fetch('data/sample_ecommerce.sql');
+      if (!r.ok) throw new Error('not found');
+      const sql = await r.text();
+      this.db = new this.SQL.Database();
+      this.db.run(sql);
+      this.setState({ ready: true, dbName: 'sample_ecommerce.sql', tableView: null, charts: [], messages: [], transforms: [] });
+      this.refreshSchema();
+    } catch (e) {
+      this.setState({ dbName: 'No database — open a .sqlite file' });
+    }
+  }
+
+  refreshSchema() {
+    const res = this.db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
+    const names = res.length ? res[0].values.map(v => v[0]) : [];
+    const tables = names.map(name => {
+      const info = this.db.exec(`PRAGMA table_info("${name}")`);
+      const columns = info.length ? info[0].values.map(v => ({ name: v[1], type: v[2] || '?' })) : [];
+      let rowCount = 0;
+      try { rowCount = this.db.exec(`SELECT COUNT(*) FROM "${name}"`)[0].values[0][0]; } catch (e) {}
+      return { name, columns, rowCount };
+    });
+    this.setState({ tables });
+  }
+
+  runQuery(q) {
+    const t0 = performance.now();
+    const res = this.db.exec(q);
+    const ms = Math.max(1, Math.round(performance.now() - t0));
+    if (!res.length) return { columns: [], rows: [], ms };
+    return { columns: res[0].columns, rows: res[0].values, ms };
+  }
+
+  schemaText() {
+    return this.state.tables.map(t =>
+      `${t.name} (${t.rowCount} rows): ${t.columns.map(c => c.name + ' ' + c.type).join(', ')}`
+    ).join('\n');
+  }
+
+  viewTable(name) {
+    try {
+      const r = this.runQuery(`SELECT * FROM "${name}" LIMIT 200`);
+      const total = this.state.tables.find(t => t.name === name);
+      this.setState({
+        tab: 'data',
+        tableView: {
+          title: name,
+          columns: r.columns,
+          rows: r.rows,
+          meta: `${r.rows.length}${total && total.rowCount > r.rows.length ? ' of ' + total.rowCount : ''} rows`
+        }
+      });
+    } catch (e) {}
+  }
+
+  showQueryResult(q, title) {
+    const r = this.runQuery(q);
+    this.setState({
+      tab: 'data',
+      tableView: { title: title || 'Query result', columns: r.columns, rows: r.rows.slice(0, 500), meta: `${Math.min(r.rows.length, 500)} rows · ${r.ms}ms` }
+    });
+    return r;
+  }
+
+  addChart(spec) {
+    const palette = ['#2f6bff', '#22c3a6', '#f2b84b', '#e5636f', '#9a7bff', '#4fc3e8', '#7fd66b', '#e58bd0'];
+    const type = ['line', 'bar', 'pie', 'doughnut', 'scatter'].includes(spec.chart_type) ? spec.chart_type : 'bar';
+    const isPie = type === 'pie' || type === 'doughnut';
+    const datasets = (spec.datasets || []).map((d, i) => ({
+      label: d.label || `Series ${i + 1}`,
+      data: d.data || [],
+      backgroundColor: isPie ? palette.slice(0, (spec.labels || []).length).map(c => c + 'D9') : palette[i % palette.length] + (type === 'bar' ? 'CC' : '33'),
+      borderColor: palette[i % palette.length],
+      borderWidth: 2,
+      tension: 0.35,
+      fill: type === 'line' ? false : undefined,
+      pointRadius: type === 'scatter' ? 4 : 3,
+    }));
+    const config = {
+      type,
+      data: { labels: spec.labels || [], datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#c6cdd9', font: { family: "'IBM Plex Sans'", size: 11 } } } },
+        scales: isPie ? {} : {
+          x: { ticks: { color: '#8b93a3', font: { size: 10.5 } }, grid: { color: '#1e2431' } },
+          y: { ticks: { color: '#8b93a3', font: { size: 10.5 } }, grid: { color: '#1e2431' } }
+        }
+      }
+    };
+    const id = this.nextChartId++;
+    this.setState(s => ({ charts: [...s.charts, { id, title: spec.title || 'Chart', config }], tab: 'viz' }));
+    return id;
+  }
+
+  chartDataUrl(ch) {
+    // fresh offscreen render at 1280x720 (720p minimum), independent of on-screen canvas size
+    try {
+      const c = document.createElement('canvas');
+      c.width = 640; c.height = 360;
+      const cfg = JSON.parse(JSON.stringify(ch.config));
+      cfg.options = { ...cfg.options, responsive: false, animation: false, devicePixelRatio: 2 };
+      const chart = new window.Chart(c.getContext('2d'), cfg);
+      const out = document.createElement('canvas');
+      out.width = 1280; out.height = 720;
+      const ctx = out.getContext('2d');
+      ctx.fillStyle = '#12151c';
+      ctx.fillRect(0, 0, 1280, 720);
+      ctx.drawImage(chart.canvas, 0, 0, 1280, 720);
+      const url = out.toDataURL('image/png');
+      chart.destroy();
+      return url;
+    } catch (e) { return null; }
+  }
+
+  addNativeChart(pptx, slide, ch) {
+    const d = ch.config.data;
+    const type = ch.config.type;
+    const palette = ['2F6BFF', '22C3A6', 'F2B84B', 'E5636F', '9A7BFF', '4FC3E8', '7FD66B', 'E58BD0'];
+    const pos = { x: 0.5, y: 1.05, w: 9.0, h: 4.2 };
+    if (type === 'pie' || type === 'doughnut') {
+      const ds = d.datasets[0] || { data: [] };
+      slide.addChart(type === 'pie' ? pptx.ChartType.pie : pptx.ChartType.doughnut,
+        [{ name: ch.title, labels: d.labels, values: ds.data }],
+        { ...pos, chartColors: palette, showLegend: true, legendPos: 'r', legendColor: 'C6CDD9', legendFontSize: 12, showValue: true, dataLabelColor: 'FFFFFF', dataLabelFontSize: 10 });
+    } else {
+      const data = d.datasets.map(ds => ({ name: ds.label, labels: d.labels, values: ds.data }));
+      const ct = type === 'line' || type === 'scatter' ? pptx.ChartType.line : pptx.ChartType.bar;
+      slide.addChart(ct, data, {
+        ...pos,
+        chartColors: palette.slice(0, Math.max(1, d.datasets.length)),
+        barDir: 'col',
+        lineSmooth: type === 'line',
+        lineSize: 2.5,
+        showLegend: d.datasets.length > 1, legendPos: 'b', legendColor: 'C6CDD9', legendFontSize: 12,
+        catAxisLabelColor: 'C6CDD9', catAxisLabelFontSize: 10, catAxisLineColor: '3A4356',
+        valAxisLabelColor: 'C6CDD9', valAxisLabelFontSize: 10, valAxisLineColor: '3A4356',
+        valGridLine: { color: '2A3140', style: 'solid', size: 0.5 },
+        catGridLine: { style: 'none' },
+        plotArea: { fill: { color: '12151C' } },
+      });
+    }
+  }
+
+  download(url, filename) {
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  slug(t) { return (t || 'chart').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'chart'; }
+
+  exportPng(ch) {
+    const url = this.chartDataUrl(ch);
+    if (url) this.download(url, this.slug(ch.title) + '.png');
+  }
+
+  exportDoc(ch) {
+    const url = this.chartDataUrl(ch);
+    if (!url) return;
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${ch.title}</title></head><body><h1 style="font-family:Calibri,sans-serif">${ch.title}</h1><p style="font-family:Calibri,sans-serif;color:#555">Exported from Quarry · ${new Date().toLocaleDateString()}</p><img src="${url}" width="640"></body></html>`;
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    this.download(URL.createObjectURL(blob), this.slug(ch.title) + '.doc');
+  }
+
+  exportPpt(ch) { this.exportDeckOf([ch], this.slug(ch.title)); }
+
+  exportDeck() { this.exportDeckOf(this.state.charts); }
+
+  exportDeckOf(charts, name) {
+    const pptx = new window.PptxGenJS();
+    pptx.layout = 'LAYOUT_16x9';
+    charts.forEach(ch => {
+      const slide = pptx.addSlide();
+      slide.background = { color: '0E1117' };
+      slide.addText(ch.title, { x: 0.4, y: 0.25, w: 9.2, h: 0.6, fontSize: 22, bold: true, color: 'E2E6EE', fontFace: 'Calibri' });
+      try {
+        this.addNativeChart(pptx, slide, ch); // real editable PowerPoint chart
+      } catch (e) {
+        const url = this.chartDataUrl(ch); // fallback: 720p image
+        if (url) slide.addImage({ data: url, x: 0.6, y: 1.0, w: 8.8, h: 4.95 });
+      }
+    });
+    pptx.writeFile({ fileName: (name || 'quarry-analysis') + '.pptx' });
+  }
+
+  // ---------- chat ----------
+
+  send(text) {
+    const q = (text || '').trim();
+    if (!q || this.state.pending || !this.state.ready) return;
+    this.setState(s => ({
+      input: '',
+      pending: true,
+      messages: [...s.messages, { role: 'user', text: q, sqlBlocks: [] }, { role: 'assistant', text: '', sqlBlocks: [], thinking: true }]
+    }), () => this.runTurn());
+  }
+
+  appendSqlBlock(block) {
+    this.setState(s => {
+      const msgs = s.messages.slice();
+      const last = { ...msgs[msgs.length - 1] };
+      last.sqlBlocks = [...last.sqlBlocks, block];
+      msgs[msgs.length - 1] = last;
+      return { messages: msgs };
+    });
+  }
+
+  async runTurn() {
+    const history = this.state.messages
+      .filter(m => m.text && !m.thinking)
+      .map(m => ({ role: m.role, content: m.text }));
+
+    const tools = [
+      {
+        name: 'run_sql',
+        description: 'Run a read-only SQLite query against the database and get results back as JSON. Use for analysis. Results are truncated to 50 rows.',
+        input_schema: { type: 'object', properties: { query: { type: 'string', description: 'SQLite SELECT query' } }, required: ['query'] },
+        run: async (input) => {
+          try {
+            const r = this.runQuery(input.query);
+            this.appendSqlBlock({ query: input.query, meta: `${r.rows.length} rows · ${r.ms}ms`, error: false });
+            const rows = r.rows.slice(0, 50).map(row => Object.fromEntries(r.columns.map((c, i) => [c, row[i]])));
+            return JSON.stringify({ row_count: r.rows.length, rows });
+          } catch (e) {
+            this.appendSqlBlock({ query: input.query, meta: 'error', error: true });
+            throw new Error('SQL error: ' + e.message);
+          }
+        }
+      },
+      {
+        name: 'show_table',
+        description: 'Run a query and display its full results as a table in the user-facing data panel. Use when the user should see the rows themselves.',
+        input_schema: { type: 'object', properties: { query: { type: 'string' }, title: { type: 'string', description: 'Short human title for the result set' } }, required: ['query', 'title'] },
+        run: async (input) => {
+          try {
+            const r = this.showQueryResult(input.query, input.title);
+            this.appendSqlBlock({ query: input.query, meta: `${r.rows.length} rows · shown`, error: false });
+            return `Displayed ${r.rows.length} rows in the data panel.`;
+          } catch (e) {
+            this.appendSqlBlock({ query: input.query, meta: 'error', error: true });
+            throw new Error('SQL error: ' + e.message);
+          }
+        }
+      },
+      {
+        name: 'show_transformation',
+        description: 'Log an auditable data transformation in the Transform panel: the relevant source rows/columns side by side with the aggregated result, so the user can verify the computation. Call this whenever your answer relies on an aggregation (SUM, COUNT, AVG, GROUP BY, joins that reduce rows).',
+        input_schema: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', description: 'Short title, e.g. "Revenue by category"' },
+            description: { type: 'string', description: 'One sentence: what was computed and how, e.g. "Summed quantity × unit_price per category over completed orders"' },
+            operation: { type: 'string', description: 'Short op tag, e.g. SUM · GROUP BY category' },
+            source_query: { type: 'string', description: 'Query selecting ONLY the relevant raw columns feeding the aggregation (the rows being summed/counted)' },
+            result_query: { type: 'string', description: 'The aggregation query producing the final result' },
+            highlight_columns: { type: 'array', items: { type: 'string' }, description: 'Source column names being aggregated (highlighted for the user)' }
+          },
+          required: ['title', 'description', 'operation', 'source_query', 'result_query']
+        },
+        run: async (input) => {
+          try {
+            const src = this.runQuery(input.source_query);
+            const res = this.runQuery(input.result_query);
+            this.appendSqlBlock({ query: input.result_query, meta: `${res.rows.length} rows · audit logged`, error: false });
+            this.setState(s => ({
+              tab: 'trans',
+              transforms: [{
+                id: Date.now() + Math.random(),
+                title: input.title, desc: input.description, op: input.operation || 'TRANSFORM',
+                highlightCols: input.highlight_columns || [],
+                source: { columns: src.columns, rows: src.rows.slice(0, 40), total: src.rows.length },
+                result: { columns: res.columns, rows: res.rows.slice(0, 60), total: res.rows.length },
+              }, ...s.transforms]
+            }));
+            return `Transformation logged in the Transform panel (${src.rows.length} source rows → ${res.rows.length} result rows).`;
+          } catch (e) {
+            throw new Error('SQL error: ' + e.message);
+          }
+        }
+      },
+      {
+        name: 'export_charts',
+        description: 'Export existing charts from the visualizations panel as a downloaded file. format: pptx (PowerPoint, one slide per chart), png (image, single chart only), or doc (Word document, single chart only). Omit chart_titles to export all charts. Charts must already exist — create them with create_chart first.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            format: { type: 'string', enum: ['pptx', 'png', 'doc'] },
+            chart_titles: { type: 'array', items: { type: 'string' }, description: 'Titles of charts to export. Omit for all.' }
+          },
+          required: ['format']
+        },
+        run: async (input) => {
+          const all = this.state.charts;
+          if (!all.length) throw new Error('No charts exist yet. Create one with create_chart first.');
+          let selected = all;
+          if (input.chart_titles && input.chart_titles.length) {
+            selected = all.filter(c => input.chart_titles.some(t => c.title.toLowerCase().includes(t.toLowerCase())));
+            if (!selected.length) throw new Error('No charts matched those titles. Existing charts: ' + all.map(c => c.title).join(' | '));
+          }
+          this.setState({ tab: 'viz' });
+          await new Promise(r => setTimeout(r, 400)); // let canvases mount if tab just switched
+          if (input.format === 'pptx') {
+            this.exportDeckOf(selected);
+            return `Exported ${selected.length} chart(s) to PowerPoint: ` + selected.map(c => c.title).join(' | ');
+          }
+          if (input.format === 'png') { this.exportPng(selected[0]); return `Exported "${selected[0].title}" as PNG.`; }
+          this.exportDoc(selected[0]);
+          return `Exported "${selected[0].title}" as Word document.`;
+        }
+      },
+      {
+        name: 'create_chart',
+        description: 'Render a chart in the visualizations panel. Provide labels and one or more datasets of numbers aligned to the labels.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            chart_type: { type: 'string', enum: ['line', 'bar', 'pie', 'doughnut', 'scatter'] },
+            title: { type: 'string' },
+            labels: { type: 'array', items: { type: 'string' } },
+            datasets: { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, data: { type: 'array', items: { type: 'number' } } }, required: ['label', 'data'] } }
+          },
+          required: ['chart_type', 'title', 'labels', 'datasets']
+        },
+        run: async (input) => {
+          this.addChart(input);
+          return 'Chart created and shown in the visualizations panel.';
+        }
+      }
+    ];
+
+    const system = `You are Quarry, a data analyst assistant embedded in a SQL analytics tool. You have tools to query a SQLite database, display result tables to the user, and render charts.
+
+Database schema:
+${this.schemaText()}
+
+Rules:
+- Use run_sql to investigate before answering. SQLite dialect. Use strftime('%Y-%m', order_date) for monthly grouping.
+- When the user asks to SEE data, call show_table so it appears in their data panel.
+- When a visualization helps or is requested, call create_chart with real numbers you queried.
+- When the user asks to export/download charts (to PowerPoint, image, or Word), call export_charts. If the chart doesn't exist yet, create it first, then export.
+- Whenever your answer relies on an aggregation (SUM, COUNT, AVG, GROUP BY), ALSO call show_transformation so the user can audit the computation: source_query selects only the relevant raw columns (limit ~40 rows is fine), result_query is the aggregation itself.
+- Final answers: concise plain text, no markdown formatting, no code blocks. Mention concrete numbers.
+- If a request is ambiguous, make a reasonable assumption and state it briefly.`;
+
+    let text;
+    const sel = this.state.model ?? this.props.model ?? 'claude-sonnet-4-5';
+    const custom = this.state.customModels.find(m => m.id === sel);
+    try {
+      if (custom) {
+        text = await this.runCustomTurn(custom, system, history, tools);
+      } else {
+        text = await window.claude.complete({
+          model: sel,
+          max_tokens: 4000,
+          system,
+          messages: history,
+          tools
+        });
+      }
+    } catch (e) {
+      text = 'Something went wrong talking to the model: ' + (e && e.message ? e.message : e) + '. Please try again.';
+    }
+    this.setState(s => {
+      const msgs = s.messages.slice();
+      const last = { ...msgs[msgs.length - 1] };
+      last.text = (text || '').trim() || 'Done — see the panel on the right.';
+      last.thinking = false;
+      msgs[msgs.length - 1] = last;
+      return { messages: msgs, pending: false };
+    });
+  }
+
+  // ---------- external models ----------
+
+  saveCustomModels(list) {
+    this.setState({ customModels: list });
+    try { localStorage.setItem('quarry_custom_models', JSON.stringify(list)); } catch (e) {}
+  }
+
+  async runCustomTurn(cm, system, messages, tools) {
+    if (cm.provider === 'anthropic') return this.runAnthropicApi(cm, system, messages, tools);
+    return this.runOpenAiApi(cm, system, messages, tools);
+  }
+
+  async runOpenAiApi(cm, system, messages, tools) {
+    const msgs = [{ role: 'system', content: system }, ...messages];
+    const fnTools = tools.map(t => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
+    for (let i = 0; i < 8; i++) {
+      const r = await fetch(cm.baseUrl.replace(/\/+$/, '') + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cm.apiKey },
+        body: JSON.stringify({ model: cm.model, messages: msgs, tools: fnTools, max_tokens: 4000 })
+      });
+      if (!r.ok) throw new Error(cm.label + ' API error ' + r.status + ': ' + (await r.text()).slice(0, 300));
+      const j = await r.json();
+      const m = j.choices && j.choices[0] && j.choices[0].message;
+      if (!m) throw new Error('Unexpected API response shape.');
+      msgs.push(m);
+      if (m.tool_calls && m.tool_calls.length) {
+        for (const tc of m.tool_calls) {
+          const tool = tools.find(t => t.name === tc.function.name);
+          let out;
+          try {
+            out = tool ? await tool.run(JSON.parse(tc.function.arguments || '{}')) : 'Unknown tool';
+          } catch (e) { out = 'Error: ' + e.message; }
+          msgs.push({ role: 'tool', tool_call_id: tc.id, content: String(out) });
+        }
+      } else {
+        return m.content || '';
+      }
+    }
+    return 'Stopped after 8 tool iterations.';
+  }
+
+  async runAnthropicApi(cm, system, messages, tools) {
+    const msgs = messages.map(m => ({ role: m.role, content: m.content }));
+    const apiTools = tools.map(t => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
+    for (let i = 0; i < 8; i++) {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': cm.apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: cm.model, system, messages: msgs, tools: apiTools, max_tokens: 4000 })
+      });
+      if (!r.ok) throw new Error(cm.label + ' API error ' + r.status + ': ' + (await r.text()).slice(0, 300));
+      const j = await r.json();
+      msgs.push({ role: 'assistant', content: j.content });
+      if (j.stop_reason === 'tool_use') {
+        const results = [];
+        for (const b of j.content.filter(b => b.type === 'tool_use')) {
+          const tool = tools.find(t => t.name === b.name);
+          let out, isErr = false;
+          try {
+            out = tool ? await tool.run(b.input) : 'Unknown tool';
+          } catch (e) { out = 'Error: ' + e.message; isErr = true; }
+          results.push({ type: 'tool_result', tool_use_id: b.id, content: String(out), is_error: isErr });
+        }
+        msgs.push({ role: 'user', content: results });
+      } else {
+        return j.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+      }
+    }
+    return 'Stopped after 8 tool iterations.';
+  }
+
+  // ---------- render ----------
+
+  renderVals() {
+    const s = this.state;
+    const defaultSqlOpen = this.props.sqlExpandedByDefault ?? false;
+
+    const tables = s.tables.map(t => ({
+      name: t.name,
+      rowCount: String(t.rowCount),
+      columns: t.columns,
+      expanded: !!s.expanded[t.name],
+      arrowRot: s.expanded[t.name] ? 'rotate(90deg)' : 'rotate(0deg)',
+      onToggle: () => this.setState(st => ({ expanded: { ...st.expanded, [t.name]: !st.expanded[t.name] } })),
+      onView: () => this.viewTable(t.name),
+    }));
+
+    const messages = s.messages.map((m, mi) => {
+      const isUser = m.role === 'user';
+      return {
+        roleLabel: isUser ? 'YOU' : 'ANALYST',
+        align: isUser ? 'flex-end' : 'flex-start',
+        bg: isUser ? '#1d2b4a' : '#141922',
+        border: isUser ? '#2a3d68' : '#232a38',
+        color: '#e2e6ee',
+        hasText: !!m.text,
+        text: m.text,
+        thinking: !!m.thinking,
+        sqlBlocks: (m.sqlBlocks || []).map((b, bi) => {
+          const key = mi + '-' + bi;
+          const open = s.sqlOpen[key] ?? defaultSqlOpen;
+          return {
+            query: b.query,
+            preview: b.query.replace(/\s+/g, ' ').slice(0, 60),
+            meta: b.meta,
+            metaColor: b.error ? '#e5636f' : '#6b7484',
+            open,
+            arrowRot: open ? 'rotate(90deg)' : 'rotate(0deg)',
+            onToggle: () => this.setState(st => ({ sqlOpen: { ...st.sqlOpen, [key]: !open } })),
+          };
+        }),
+      };
+    });
+
+    const compact = this.props.compactRows ?? false;
+    const tv = s.tableView;
+    const tableRows = tv ? tv.rows.map(r => ({
+      cells: r.map(c => c === null ? 'NULL' : String(c))
+    })) : [];
+
+    const charts = s.charts.map(ch => ({
+      id: ch.id,
+      title: ch.title,
+      refCb: (el) => {
+        if (el && !this.chartRegistry[ch.id]) {
+          this.chartRegistry[ch.id] = { canvas: el, chart: new window.Chart(el, ch.config) };
+        }
+      },
+      exportPng: () => this.exportPng(ch),
+      exportDoc: () => this.exportDoc(ch),
+      exportPpt: () => this.exportPpt(ch),
+      remove: () => {
+        const e = this.chartRegistry[ch.id];
+        if (e) { try { e.chart.destroy(); } catch (er) {} delete this.chartRegistry[ch.id]; }
+        this.setState(st => ({ charts: st.charts.filter(c => c.id !== ch.id) }));
+      },
+    }));
+
+    const transforms = s.transforms.map(t => {
+      const hl = new Set((t.highlightCols || []).map(c => c.toLowerCase()));
+      const isHl = (name) => hl.has(String(name).toLowerCase());
+      return {
+        title: t.title, desc: t.desc, op: t.op,
+        sourceMeta: `${t.source.rows.length}${t.source.total > t.source.rows.length ? ' of ' + t.source.total : ''} rows`,
+        resultMeta: `${t.result.rows.length}${t.result.total > t.result.rows.length ? ' of ' + t.result.total : ''} rows`,
+        sourceCols: t.source.columns.map(c => ({
+          name: c,
+          hbg: isHl(c) ? '#1a2440' : '#161b25',
+          hcolor: isHl(c) ? '#7ea0ff' : '#8ea4d6',
+        })),
+        sourceRows: t.source.rows.map(r => ({
+          cells: r.map((v, i) => ({
+            v: v === null ? 'NULL' : String(v),
+            bg: isHl(t.source.columns[i]) ? 'rgba(47,107,255,0.10)' : 'transparent',
+          }))
+        })),
+        resultCols: t.result.columns,
+        resultRows: t.result.rows.map(r => ({ cells: r.map(v => v === null ? 'NULL' : String(v)) })),
+      };
+    });
+
+    const modelId = this.props.model ?? 'claude-sonnet-4-5';
+
+    return {
+      dbName: s.dbName,
+      dbDotColor: s.ready ? '#22c3a6' : '#f2b84b',
+      statusLabel: s.pending ? 'analyzing…' : (s.ready ? 'ready' : 'loading engine…'),
+      modelVal: s.model ?? modelId,
+      modelSelWidth: (() => {
+        const cur = s.model ?? modelId;
+        const cm = s.customModels.find(m => m.id === cur);
+        const label = cm ? cm.label : (cur.includes('haiku') ? 'haiku · fast' : 'sonnet · smart');
+        return Math.min(170, Math.round(label.length * 6.7) + 20) + 'px';
+      })(),
+      onModelChange: (e) => {
+        const v = e.target.value;
+        if (v === '__add') { this.setState({ modalOpen: true, mError: null }); return; }
+        this.setState({ model: v });
+      },
+      customModelOpts: s.customModels.map(cm => ({
+        id: cm.id,
+        label: cm.label,
+        onRemove: () => {
+          const list = s.customModels.filter(m => m.id !== cm.id);
+          this.saveCustomModels(list);
+          if (this.state.model === cm.id) this.setState({ model: null });
+        },
+      })),
+      hasCustomModels: s.customModels.length > 0,
+      // connect-model modal
+      openModal: () => this.setState({ modalOpen: true, mError: null }),
+      modalOpen: s.modalOpen,
+      mProvider: s.mProvider,
+      onMProvider: (e) => this.setState({ mProvider: e.target.value }),
+      mShowBaseUrl: s.mProvider === 'openai',
+      mBaseUrl: s.mBaseUrl,
+      onMBaseUrl: (e) => this.setState({ mBaseUrl: e.target.value }),
+      mModel: s.mModel,
+      mModelPlaceholder: s.mProvider === 'anthropic' ? 'claude-sonnet-4-5' : 'gpt-4o',
+      onMModel: (e) => this.setState({ mModel: e.target.value }),
+      mApiKey: s.mApiKey,
+      onMApiKey: (e) => this.setState({ mApiKey: e.target.value }),
+      mError: s.mError,
+      mCancel: () => this.setState({ modalOpen: false, mError: null }),
+      mSave: () => {
+        const { mProvider, mBaseUrl, mModel, mApiKey } = this.state;
+        if (!mModel.trim()) { this.setState({ mError: 'Model ID is required.' }); return; }
+        if (!mApiKey.trim()) { this.setState({ mError: 'API key is required.' }); return; }
+        if (mProvider === 'openai' && !/^https?:\/\//.test(mBaseUrl.trim())) { this.setState({ mError: 'Base URL must start with http(s)://' }); return; }
+        const id = 'custom-' + Date.now();
+        const cm = {
+          id,
+          label: mModel.trim(),
+          provider: mProvider,
+          baseUrl: mBaseUrl.trim(),
+          model: mModel.trim(),
+          apiKey: mApiKey.trim(),
+        };
+        this.saveCustomModels([...this.state.customModels, cm]);
+        this.setState({ modalOpen: false, model: id, mModel: '', mApiKey: '', mError: null });
+      },
+      tables,
+      messages,
+      showIntro: s.messages.length === 0,
+      inputVal: s.input,
+      onInput: (e) => this.setState({ input: e.target.value }),
+      onKeyDown: (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.send(this.state.input); }
+      },
+      onSend: () => this.send(this.state.input),
+      sendDisabled: s.pending || !s.ready,
+      sendOpacity: (s.pending || !s.ready) ? '0.45' : '1',
+      sugg1: () => this.send("Give me an overview of what's in this database"),
+      sugg2: () => this.send('Who are the top 10 customers by revenue?'),
+      sugg3: () => this.send('Chart monthly revenue as a line chart'),
+      msgsRef: (el) => { this.msgsEl = el; },
+      fileInputRef: (el) => { this.fileInput = el; },
+      openDbClick: () => { if (this.fileInput) this.fileInput.click(); },
+      onFileChosen: async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file || !this.SQL) return;
+        try {
+          const buf = await file.arrayBuffer();
+          this.db = new this.SQL.Database(new Uint8Array(buf));
+          Object.values(this.chartRegistry).forEach(c => { try { c.chart.destroy(); } catch (er) {} });
+          this.chartRegistry = {};
+          this.setState({ dbName: file.name, tableView: null, charts: [], messages: [], transforms: [], expanded: {} });
+          this.refreshSchema();
+        } catch (err) {
+          this.setState({ dbName: 'Could not open file' });
+        }
+        e.target.value = '';
+      },
+
+      // tabs
+      tabData: () => this.setState({ tab: 'data' }),
+      tabViz: () => this.setState({ tab: 'viz' }),
+      showDataTab: s.tab === 'data',
+      showVizTab: s.tab === 'viz',
+      dataTabBorder: s.tab === 'data' ? '#2f6bff' : 'transparent',
+      dataTabColor: s.tab === 'data' ? '#e2e6ee' : '#6b7484',
+      vizTabBorder: s.tab === 'viz' ? '#2f6bff' : 'transparent',
+      vizTabColor: s.tab === 'viz' ? '#e2e6ee' : '#6b7484',
+      chartCount: String(s.charts.length),
+      tabTrans: () => this.setState({ tab: 'trans' }),
+      showTransTab: s.tab === 'trans',
+      transTabBorder: s.tab === 'trans' ? '#2f6bff' : 'transparent',
+      transTabColor: s.tab === 'trans' ? '#e2e6ee' : '#6b7484',
+      transCount: String(s.transforms.length),
+      transforms,
+      hasTransforms: s.transforms.length > 0,
+      noTransforms: s.transforms.length === 0,
+      // data tab
+      hasTableView: !!tv,
+      noTableView: !tv,
+      tableTitle: tv ? tv.title : '',
+      tableMeta: tv ? tv.meta : '',
+      tableCols: tv ? tv.columns : [],
+      tableRows,
+      // viz tab
+      charts,
+      hasCharts: s.charts.length > 0,
+      noCharts: s.charts.length === 0,
+      exportDeck: () => this.exportDeck(),
+    };
+  }
+}
+</script>
+</body>
+</html>

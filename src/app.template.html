@@ -1,0 +1,339 @@
+
+<div style="display:flex;height:100vh;width:100vw;overflow:hidden;background:#0e1117;color:#e2e6ee;font-family:'IBM Plex Sans',sans-serif;font-size:14px">
+
+  <!-- ============ SCHEMA SIDEBAR ============ -->
+  <div data-screen-label="Schema sidebar" style="width:236px;min-width:236px;display:flex;flex-direction:column;background:#12151c;border-right:1px solid #222836">
+    <div style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px 14px;border-bottom:1px solid #222836">
+      <div style="width:24px;height:24px;border-radius:6px;background:#2f6bff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#ffffff">Q</div>
+      <div style="font-weight:600;font-size:15px;letter-spacing:0.2px">Quarry</div>
+      <div style="margin-left:auto;font-size:10px;color:#6b7484;font-family:'IBM Plex Mono',monospace">v0.2</div>
+    </div>
+
+    <div style="padding:9px 14px;border-bottom:1px solid #222836;display:flex;flex-direction:column;gap:3px">
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;color:#6b7484">LICENSE</div>
+        <div style="margin-left:auto;font-size:11px;color:{{ usageColor }};font-family:'IBM Plex Mono',monospace">{{ usageLabel }}</div>
+      </div>
+      <div style="font-size:12px;color:#c6cdd9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ licenseLabel }}</div>
+    </div>
+
+    <div style="padding:12px 14px;border-bottom:1px solid #222836;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;color:#6b7484">DATA SOURCE</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:7px;height:7px;border-radius:50%;background:{{ dbDotColor }}"></div>
+        <div style="font-size:13px;color:#c6cdd9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ dbName }}</div>
+      </div>
+      <button onClick="{{ openDbClick }}" style="width:100%;background:#1b2029;border:1px solid #2a3140;color:#c6cdd9;border-radius:6px;padding:6px 0;font-size:12px;font-family:'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="background:#222836;border-color:#3a4356">Open data file</button>
+      <input type="file" accept=".db,.sqlite,.sqlite3,.csv,.tsv,.json,.xlsx,.xls,.sql" ref="{{ fileInputRef }}" onChange="{{ onFileChosen }}" style="display:none">
+      <div style="font-size:10.5px;color:#5a6374;line-height:1.4">SQLite · CSV · Excel · JSON — stays on your computer</div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:10px 8px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;color:#6b7484;padding:2px 6px 8px 6px">TABLES</div>
+      <sc-for list="{{ tables }}" as="tbl" hint-placeholder-count="4">
+        <div style="margin-bottom:2px">
+          <div onClick="{{ tbl.onToggle }}" style="display:flex;align-items:center;gap:7px;padding:6px 6px;border-radius:6px;cursor:pointer" style-hover="background:#1b2029">
+            <div style="font-size:9px;color:#6b7484;width:10px;transform:{{ tbl.arrowRot }};transition:transform 0.15s">▶</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#d7dce6;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ tbl.name }}</div>
+            <div style="font-size:10.5px;color:#6b7484;font-family:'IBM Plex Mono',monospace">{{ tbl.rowCount }}</div>
+          </div>
+          <sc-if value="{{ tbl.expanded }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:2px 0 6px 23px;display:flex;flex-direction:column;gap:1px">
+              <sc-for list="{{ tbl.columns }}" as="col" hint-placeholder-count="3">
+                <div style="display:flex;align-items:baseline;gap:8px;padding:2px 6px">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#9aa3b5">{{ col.name }}</div>
+                  <div style="font-size:10px;color:#5a6374;font-family:'IBM Plex Mono',monospace">{{ col.type }}</div>
+                </div>
+              </sc-for>
+              <button onClick="{{ tbl.onView }}" style="margin:4px 6px 0 6px;background:transparent;border:1px solid #2a3140;color:#8ea4d6;border-radius:5px;padding:4px 0;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;color:#b9c8ea">Browse rows</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="padding:10px 14px;border-top:1px solid #222836;font-size:11px;color:#5a6374;line-height:1.5">Ask the analyst in plain language — it queries this database for you.</div>
+  </div>
+
+  <!-- ============ CHAT PANEL ============ -->
+  <div data-screen-label="Chat panel" style="flex:0 1 440px;min-width:280px;display:flex;flex-direction:column;background:#0e1117;border-right:1px solid #222836">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #222836">
+      <div style="font-weight:600;font-size:14px">Analyst</div>
+      <select value="{{ modelVal }}" onChange="{{ onModelChange }}" style="font-size:11px;color:#8ea4d6;background:#182238;border:1px solid #24304a;border-radius:20px;padding:3px 8px;font-family:'IBM Plex Mono',monospace;cursor:pointer;outline:none;appearance:none;width:{{ modelSelWidth }}">
+        <option value="claude-sonnet-5">sonnet · smart</option>
+        <option value="claude-haiku-4-5">haiku · fast</option>
+        <sc-for list="{{ customModelOpts }}" as="cm" hint-placeholder-count="0">
+          <option value="{{ cm.id }}">{{ cm.label }}</option>
+        </sc-for>
+        <option value="__add">＋ connect model…</option>
+      </select>
+      <button onClick="{{ openModal }}" title="Use your own API key (OpenAI, Anthropic, Groq, Ollama…)" style="display:flex;align-items:center;gap:5px;background:#1b2029;border:1px dashed #3a4356;color:#9aa3b5;border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap" style-hover="border-color:#2f6bff;color:#e2e6ee;background:#182238"><span style="color:#2f6bff;font-size:13px;line-height:1">＋</span>Connect model</button>
+      <div style="margin-left:auto;font-size:11px;color:#6b7484">{{ statusLabel }}</div>
+    </div>
+
+    <div ref="{{ msgsRef }}" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px">
+
+      <sc-if value="{{ showIntro }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+          <div style="font-size:15px;font-weight:600;color:#e2e6ee">What do you want to know about this data?</div>
+          <div style="font-size:12.5px;color:#8b93a3;line-height:1.55">I can query the database, show result tables on the right, and build charts you can export to PNG, Word or PowerPoint.</div>
+          <div style="display:flex;flex-direction:column;gap:7px;margin-top:4px">
+            <button onClick="{{ sugg1 }}" style="text-align:left;background:#141922;border:1px solid #232a38;color:#b8c0cf;border-radius:8px;padding:9px 12px;font-size:12.5px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;background:#161c28">Give me an overview of what's in this database</button>
+            <button onClick="{{ sugg2 }}" style="text-align:left;background:#141922;border:1px solid #232a38;color:#b8c0cf;border-radius:8px;padding:9px 12px;font-size:12.5px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;background:#161c28">Who are the top 10 customers by revenue?</button>
+            <button onClick="{{ sugg3 }}" style="text-align:left;background:#141922;border:1px solid #232a38;color:#b8c0cf;border-radius:8px;padding:9px 12px;font-size:12.5px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;background:#161c28">Chart monthly revenue as a line chart</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-for list="{{ messages }}" as="msg" hint-placeholder-count="0">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:{{ msg.align }}">
+          <div style="font-size:10px;font-weight:600;letter-spacing:1px;color:#5a6374">{{ msg.roleLabel }}</div>
+
+          <sc-for list="{{ msg.sqlBlocks }}" as="blk" hint-placeholder-count="0">
+            <div style="width:100%;background:#12151c;border:1px solid #232a38;border-radius:8px;overflow:hidden">
+              <div onClick="{{ blk.onToggle }}" style="display:flex;align-items:center;gap:8px;padding:7px 11px;cursor:pointer" style-hover="background:#161b25">
+                <div style="font-size:9px;color:#6b7484;transform:{{ blk.arrowRot }};transition:transform 0.15s">▶</div>
+                <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#8ea4d6;font-family:'IBM Plex Mono',monospace">SQL</div>
+                <div style="font-size:11px;color:#6b7484;font-family:'IBM Plex Mono',monospace;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ blk.preview }}</div>
+                <div style="font-size:10.5px;color:{{ blk.metaColor }};font-family:'IBM Plex Mono',monospace;white-space:nowrap">{{ blk.meta }}</div>
+              </div>
+              <sc-if value="{{ blk.open }}" hint-placeholder-val="{{ false }}">
+                <pre style="margin:0;padding:10px 12px;border-top:1px solid #232a38;font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.55;color:#c6cdd9;white-space:pre-wrap;word-break:break-word;background:#0e1117">{{ blk.query }}</pre>
+              </sc-if>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ msg.hasText }}" hint-placeholder-val="{{ true }}">
+            <div style="max-width:92%;padding:10px 13px;border-radius:10px;font-size:13.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;background:{{ msg.bg }};border:1px solid {{ msg.border }};color:{{ msg.color }}">{{ msg.text }}</div>
+          </sc-if>
+
+          <sc-if value="{{ msg.thinking }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:5px;padding:10px 4px">
+              <div style="width:6px;height:6px;border-radius:50%;background:#2f6bff;animation:qpulse 1.2s infinite"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:#2f6bff;animation:qpulse 1.2s 0.2s infinite"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:#2f6bff;animation:qpulse 1.2s 0.4s infinite"></div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="padding:12px 14px;border-top:1px solid #222836;display:flex;flex-direction:column;gap:8px">
+      <textarea value="{{ inputVal }}" onChange="{{ onInput }}" onKeyDown="{{ onKeyDown }}" placeholder="Ask about your data…" rows="2" style="width:100%;resize:none;background:#141922;border:1px solid #2a3140;border-radius:9px;padding:10px 12px;color:#e2e6ee;font-size:13.5px;font-family:'IBM Plex Sans',sans-serif;line-height:1.5" style-focus="border-color:#2f6bff"></textarea>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:11px;color:#5a6374">Enter to send · Shift+Enter for newline</div>
+        <button onClick="{{ onSend }}" disabled="{{ sendDisabled }}" style="margin-left:auto;background:#2f6bff;border:none;color:#ffffff;border-radius:7px;padding:7px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;opacity:{{ sendOpacity }}" style-hover="background:#4079ff">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RIGHT PANEL ============ -->
+  <div data-screen-label="Data and visualization panel" style="flex:1;display:flex;flex-direction:column;background:#0e1117;min-width:0">
+    <div style="display:flex;align-items:center;gap:4px;padding:8px 16px 0 16px;border-bottom:1px solid #222836;flex-wrap:wrap;min-width:0">
+      <button onClick="{{ tabData }}" style="background:transparent;border:none;border-bottom:2px solid {{ dataTabBorder }};color:{{ dataTabColor }};padding:8px 14px 10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif">Data</button>
+      <button onClick="{{ tabViz }}" style="background:transparent;border:none;border-bottom:2px solid {{ vizTabBorder }};color:{{ vizTabColor }};padding:8px 14px 10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif">Visualizations<span style="margin-left:7px;font-size:10.5px;background:#182238;border:1px solid #24304a;border-radius:10px;padding:1px 7px;color:#8ea4d6;font-family:'IBM Plex Mono',monospace">{{ chartCount }}</span></button>
+      <button onClick="{{ tabTrans }}" style="background:transparent;border:none;border-bottom:2px solid {{ transTabBorder }};color:{{ transTabColor }};padding:8px 14px 10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif">Transform<span style="margin-left:7px;font-size:10.5px;background:#182238;border:1px solid #24304a;border-radius:10px;padding:1px 7px;color:#8ea4d6;font-family:'IBM Plex Mono',monospace">{{ transCount }}</span></button>
+      <sc-if value="{{ hasCharts }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ exportDeck }}" style="margin-left:auto;background:#1b2029;border:1px solid #2a3140;color:#c6cdd9;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;margin-bottom:6px" style-hover="border-color:#2f6bff;color:#e2e6ee">Export all → PPTX</button>
+      </sc-if>
+    </div>
+
+    <!-- DATA TAB -->
+    <sc-if value="{{ showDataTab }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <sc-if value="{{ hasTableView }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:baseline;gap:10px;padding:14px 18px 10px 18px">
+            <div style="font-size:14.5px;font-weight:600">{{ tableTitle }}</div>
+            <div style="font-size:11.5px;color:#6b7484;font-family:'IBM Plex Mono',monospace">{{ tableMeta }}</div>
+          </div>
+          <div style="flex:1;overflow:auto;min-height:0;padding:0 18px 18px 18px">
+            <table style="border-collapse:collapse;width:100%;font-size:12.5px">
+              <thead>
+                <tr>
+                  <sc-for list="{{ tableCols }}" as="tc" hint-placeholder-count="4">
+                    <th style="position:sticky;top:0;background:#161b25;color:#8ea4d6;text-align:left;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;border-bottom:1px solid #2a3140;white-space:nowrap;z-index:1">{{ tc }}</th>
+                  </sc-for>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ tableRows }}" as="row" hint-placeholder-count="8">
+                  <tr style="border-bottom:1px solid #1b202b">
+                    <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="4">
+                      <td style="padding:7px 12px;color:#c6cdd9;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis">{{ cell }}</td>
+                    </sc-for>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noTableView }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#5a6374">
+            <div style="font-size:34px;opacity:0.5">▦</div>
+            <div style="font-size:13px">No data displayed yet</div>
+            <div style="font-size:12px;color:#4a5262">Browse a table from the sidebar, or ask the analyst a question.</div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- VIZ TAB -->
+    <sc-if value="{{ showVizTab }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;min-height:0;padding:16px 18px">
+        <sc-if value="{{ hasCharts }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(400px,100%),1fr));gap:14px">
+            <sc-for list="{{ charts }}" as="ch" hint-placeholder-count="0">
+              <div style="background:#12151c;border:1px solid #232a38;border-radius:10px;display:flex;flex-direction:column;overflow:hidden">
+                <div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #1e2431">
+                  <div style="font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ch.title }}</div>
+                  <button onClick="{{ ch.exportPng }}" title="Export as PNG image" style="background:#1b2029;border:1px solid #2a3140;color:#9aa3b5;border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;color:#e2e6ee">PNG</button>
+                  <button onClick="{{ ch.exportDoc }}" title="Export as Word document" style="background:#1b2029;border:1px solid #2a3140;color:#9aa3b5;border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;color:#e2e6ee">DOC</button>
+                  <button onClick="{{ ch.exportPpt }}" title="Export as PowerPoint" style="background:#1b2029;border:1px solid #2a3140;color:#9aa3b5;border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="border-color:#2f6bff;color:#e2e6ee">PPT</button>
+                  <button onClick="{{ ch.remove }}" title="Remove chart" style="background:transparent;border:none;color:#5a6374;font-size:14px;cursor:pointer;padding:2px 4px" style-hover="color:#e5636f">✕</button>
+                </div>
+                <div style="height:300px;padding:12px 14px 14px 14px;position:relative">
+                  <canvas ref="{{ ch.refCb }}"></canvas>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noCharts }}" hint-placeholder-val="{{ true }}">
+          <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#5a6374">
+            <div style="font-size:34px;opacity:0.5">◔</div>
+            <div style="font-size:13px">No visualizations yet</div>
+            <div style="font-size:12px;color:#4a5262">Ask the analyst to chart something — e.g. “chart revenue by month”.</div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- TRANSFORM TAB -->
+    <sc-if value="{{ showTransTab }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;min-height:0;padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+        <sc-if value="{{ hasTransforms }}" hint-placeholder-val="{{ false }}">
+          <sc-for list="{{ transforms }}" as="tr" hint-placeholder-count="0">
+            <div style="background:#12151c;border:1px solid #232a38;border-radius:10px;overflow:hidden">
+              <div style="padding:12px 16px;border-bottom:1px solid #1e2431;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="font-size:13.5px;font-weight:600;flex:1">{{ tr.title }}</div>
+                  <div style="font-size:10.5px;color:#8ea4d6;background:#182238;border:1px solid #24304a;border-radius:20px;padding:2px 9px;font-family:'IBM Plex Mono',monospace">{{ tr.op }}</div>
+                </div>
+                <div style="font-size:12px;color:#8b93a3;line-height:1.5">{{ tr.desc }}</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;align-items:stretch;gap:0">
+                <div style="flex:1 1 300px;min-width:260px;display:flex;flex-direction:column;min-height:0">
+                  <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;color:#6b7484;padding:10px 14px 6px 14px">SOURCE · {{ tr.sourceMeta }}</div>
+                  <div style="overflow:auto;max-height:260px;padding:0 14px 12px 14px">
+                    <table style="border-collapse:collapse;width:100%;font-size:11.5px">
+                      <thead><tr>
+                        <sc-for list="{{ tr.sourceCols }}" as="sc" hint-placeholder-count="3">
+                          <th style="position:sticky;top:0;background:{{ sc.hbg }};color:{{ sc.hcolor }};text-align:left;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;border-bottom:1px solid #2a3140;white-space:nowrap;z-index:1">{{ sc.name }}</th>
+                        </sc-for>
+                      </tr></thead>
+                      <tbody>
+                        <sc-for list="{{ tr.sourceRows }}" as="row" hint-placeholder-count="4">
+                          <tr style="border-bottom:1px solid #1b202b">
+                            <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="3">
+                              <td style="padding:5px 10px;color:#c6cdd9;font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;background:{{ cell.bg }}">{{ cell.v }}</td>
+                            </sc-for>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;padding:0 4px;color:#2f6bff;font-size:18px;align-self:center">→</div>
+                <div style="flex:1 1 300px;min-width:260px;display:flex;flex-direction:column;min-height:0;border-left:1px solid #1e2431;background:#10141c">
+                  <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;color:#22c3a6;padding:10px 14px 6px 14px">RESULT · {{ tr.resultMeta }}</div>
+                  <div style="overflow:auto;max-height:260px;padding:0 14px 12px 14px">
+                    <table style="border-collapse:collapse;width:100%;font-size:11.5px">
+                      <thead><tr>
+                        <sc-for list="{{ tr.resultCols }}" as="rc" hint-placeholder-count="2">
+                          <th style="position:sticky;top:0;background:#10141c;color:#22c3a6;text-align:left;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;border-bottom:1px solid #2a3140;white-space:nowrap;z-index:1">{{ rc }}</th>
+                        </sc-for>
+                      </tr></thead>
+                      <tbody>
+                        <sc-for list="{{ tr.resultRows }}" as="row" hint-placeholder-count="3">
+                          <tr style="border-bottom:1px solid #1b202b">
+                            <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="2">
+                              <td style="padding:5px 10px;color:#dbe6e2;font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis">{{ cell }}</td>
+                            </sc-for>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{ noTransforms }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#5a6374">
+            <div style="font-size:34px;opacity:0.5">⇉</div>
+            <div style="font-size:13px">No transformations logged yet</div>
+            <div style="font-size:12px;color:#4a5262;max-width:420px;text-align:center;line-height:1.5">When the analyst aggregates data (sums, counts, group-bys), the source rows and the computed result appear here side by side so you can audit its work.</div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- CONNECT MODEL MODAL -->
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(5,8,14,0.7);display:flex;align-items:center;justify-content:center;z-index:100" data-screen-label="Connect model modal">
+      <div style="width:420px;max-width:92vw;background:#141922;border:1px solid #2a3140;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;max-height:88vh;overflow-y:auto">
+        <div style="font-size:15px;font-weight:600">Connect an external model</div>
+        <div style="font-size:11.5px;color:#8b93a3;line-height:1.5">Your API key is stored only in this browser and sent directly to the provider — it never touches a server of ours.</div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">PROVIDER</div>
+          <select value="{{ mProvider }}" onChange="{{ onMProvider }}" style="background:#0e1117;border:1px solid #2a3140;border-radius:7px;padding:8px 10px;color:#e2e6ee;font-size:13px;font-family:'IBM Plex Sans',sans-serif;outline:none">
+            <option value="openai">OpenAI / OpenAI-compatible (Groq, Mistral, OpenRouter, Ollama…)</option>
+            <option value="anthropic">Anthropic (direct)</option>
+          </select>
+        </div>
+
+        <sc-if value="{{ mShowBaseUrl }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">BASE URL</div>
+            <input value="{{ mBaseUrl }}" onChange="{{ onMBaseUrl }}" placeholder="https://api.openai.com/v1" style="background:#0e1117;border:1px solid #2a3140;border-radius:7px;padding:8px 10px;color:#e2e6ee;font-size:12.5px;font-family:'IBM Plex Mono',monospace;outline:none">
+          </div>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">MODEL ID</div>
+          <input value="{{ mModel }}" onChange="{{ onMModel }}" placeholder="{{ mModelPlaceholder }}" style="background:#0e1117;border:1px solid #2a3140;border-radius:7px;padding:8px 10px;color:#e2e6ee;font-size:12.5px;font-family:'IBM Plex Mono',monospace;outline:none">
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">API KEY</div>
+          <input type="password" value="{{ mApiKey }}" onChange="{{ onMApiKey }}" placeholder="sk-…" style="background:#0e1117;border:1px solid #2a3140;border-radius:7px;padding:8px 10px;color:#e2e6ee;font-size:12.5px;font-family:'IBM Plex Mono',monospace;outline:none">
+        </div>
+
+        <sc-if value="{{ mError }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12px;color:#e5636f">{{ mError }}</div>
+        </sc-if>
+
+        <div style="display:flex;gap:8px;margin-top:2px">
+          <button onClick="{{ mSave }}" style="flex:1;background:#2f6bff;border:none;color:#ffffff;border-radius:7px;padding:9px 0;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="background:#4079ff">Connect</button>
+          <button onClick="{{ mCancel }}" style="flex:1;background:#1b2029;border:1px solid #2a3140;color:#c6cdd9;border-radius:7px;padding:9px 0;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="background:#222836">Cancel</button>
+        </div>
+
+        <sc-if value="{{ hasCustomModels }}" hint-placeholder-val="{{ false }}">
+          <div style="border-top:1px solid #222836;padding-top:10px;display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:0.8px;color:#6b7484">CONNECTED</div>
+            <sc-for list="{{ customModelOpts }}" as="cm" hint-placeholder-count="0">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="font-size:12px;color:#c6cdd9;font-family:'IBM Plex Mono',monospace;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ cm.label }}</div>
+                <button onClick="{{ cm.onRemove }}" style="background:transparent;border:none;color:#5a6374;font-size:13px;cursor:pointer;padding:2px 4px" style-hover="color:#e5636f">✕</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>

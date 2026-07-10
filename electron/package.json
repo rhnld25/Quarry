@@ -1,0 +1,36 @@
+{
+  "name": "quarry-desktop",
+  "version": "0.2.0",
+  "description": "Quarry — privacy-first AI data analyst (desktop shell)",
+  "author": "Quarry",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.quarry.analyst",
+    "productName": "Quarry",
+    "files": [
+      "main.js",
+      "preload.js",
+      "license.json"
+    ],
+    "extraResources": [
+      { "from": "../Quarry Analyst.dc.html", "to": "app/Quarry Analyst.dc.html" },
+      { "from": "../support.js", "to": "app/support.js" },
+      { "from": "../data", "to": "app/data" }
+    ],
+    "win": { "target": ["nsis"] },
+    "mac": { "target": ["dmg"] },
+    "directories": { "output": "dist" }
+  }
+}

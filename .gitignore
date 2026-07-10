@@ -1,0 +1,14 @@
+# Secrets — the license signing key must never be committed
+build/keys/
+
+# Extracted design-source zip (duplicate of the source files)
+_zipsrc/
+
+# Node / Electron (once you install Node)
+node_modules/
+dist/
+out/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db

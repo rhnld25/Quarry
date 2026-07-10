@@ -1,0 +1,4 @@
+{
+  "_comment": "Rename to license.json and drop next to the app for a specific client. Mint the token with: python tools/quarry_license.py mint --client acme-dental --plan monthly --quota 100 --json",
+  "token": "PASTE_A_MINTED_TOKEN_HERE"
+}
